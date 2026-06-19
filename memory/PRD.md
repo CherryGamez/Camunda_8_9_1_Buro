@@ -31,8 +31,8 @@ charts simple/airgap-friendly. Provide documentation.
 - orchestration/optimize: `AP/secret/dev/x0/elasticsearch` → camunda-orchestration-es-secret / camunda-optimize-es-secret
 
 ## Backlog / next
-- P1: Keycloak realm import (re-enable keycloakConfigCli with the camunda-platform realm) — currently disabled.
-- P1: Enable HAProxy TLS termination (`haproxy.tls.enabled`) + provide serving cert.
+- DONE (2026-06-19): keycloak-config-cli realm import re-enabled (realm `camunda-platform` + `camunda-identity` client; secret from Vault `camunda-keycloak-clients-secret`).
+- DONE (2026-06-19): HAProxy TLS termination enabled (`:443`, reencrypt Route, HTTP→HTTPS redirect).
 - P2: Static Vault DB roles for identity/web-modeler if usernames must rotate.
 - P2: Connectors/Console Vault sidecars if OIDC client secrets are externalised.
 - All deliverables are in `/app/work/camund-cd-cont` — push via "Save to GitHub".
