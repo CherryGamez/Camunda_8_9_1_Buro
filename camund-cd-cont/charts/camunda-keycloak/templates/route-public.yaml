@@ -1,0 +1,36 @@
+{{- range $route := .Values.publicRoute }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $route.name }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ $.Values.appName }}
+    app.kubernetes.io/version: {{ $.Values.version  }}
+    tier: '{{ $.Values.commonLabels.tier }}'
+    appcode: '{{ $.Values.commonLabels.appCode }}'
+    app: '{{ $.Values.appName  }}'
+    env: '{{ $.Values.environment  }}'
+    component: '{{ $.Values.commonLabels.component }}'
+    function: '{{ $.Values.commonLabels.function }}'
+    opscontact: '{{ $.Values.commonLabels.opsContact }}'
+    sfm-app: '{{ $.Values.sfm.app }}'
+    sfm-env: '{{ $.Values.sfm.env }}'
+    sfm-loc: '{{ $.Values.sfm.loc }}'
+    sfm-role: '{{ $.Values.sfm.role }}'
+spec:
+  host: '{{ $.Values.hostName  }}'
+  path: {{ $route.path  }}
+  port:
+    targetPort: https
+  to:
+    kind: Service
+    name: '{{ $.Values.appName  }}'
+    weight: 100
+  wildcardPolicy: "None"
+  tls:
+    termination: reencrypt
+---
+{{ end }}
+

@@ -1,0 +1,565 @@
+global:
+  # --- Image Registry and Pull Secrets (DMZR) ---
+  imageRegistry: "rel"  # Global override
+  imagePullSecrets: ["secret"]  # <-- Flat array
+  
+  defaultStorageClass: "gold"
+  
+  ks:
+    secret: "changeit"
+  
+  serviceTls:
+    secret:
+        name: "camunda-keycloak-service-secret"
+
+  # --- Security Parameters ---
+  security:
+    allowInsecureImages: false
+
+  # --- DMZR Environment Metadata ---
+  namespaceOverride: "ns"
+  clusterDomain: "cluster.local"
+  dnsPolicy: "ClusterFirst"
+  enableServiceLinks: true
+  
+  # --- LAAS and Illumio (DMZR-Compliant) ---
+  laas:
+    env: "dev"
+    dataset: "x0camundaplatform"
+    apcode: "AP"
+
+
+  
+  #InitContainer
+  initContainer:
+    image:
+      name: java-init-container
+      version: 8.9.1-7461552
+      
+  compatibility:
+    ## Compatibility adaptations for Openshift
+    ##
+    openshift:
+      ## @param global.compatibility.openshift.adaptSecurityContext Adapt the securityContext sections of the deployment to make them compatible with Openshift restricted-v2 SCC: remove runAsUser, runAsGroup and fsGroup and let the platform use their allowed default IDs. Possible values: auto (apply if the detected running cluster is Openshift), force (perform the adaptation always), disabled (do not perform adaptation)
+      ##
+      adaptSecurityContext: disabled
+    omitEmptySeLinuxOptions: false
+   
+
+# Management Identity.
+#    # ###### #   #  ####  #       ####    ##   #    #
+#   #  #       # #  #    # #      #    #  #  #  #   #
+####   #####    #   #      #      #    # #    # ####
+#  #   #        #   #      #      #    # ###### #  #
+#   #  #        #   #    # #      #    # #    # #   #
+#    # ######   #    ####  ######  ####  #    # #    #
+## @section Management Identity - Keycloak Parameters (DEPRECATED)
+## @extra identityKeycloak (DEPRECATED) configuration, for the Keycloak dependency chart which is used by Management Identity. For more details, check [Bitnami package for Keycloak](https://artifacthub.io/packages/helm/bitnami/keycloak#parameters) documentation.
+camunda-keycloak:
+  ## @param identityKeycloak.enabled (DEPRECATED) Enable Management Identity Keycloak Helm chart. It is used incorporate with "global.identity.keycloak" to use your own Keycloak instead of the one comes with Camunda Helm chart
+  # Internal Keycloak: set to true (deploys Keycloak as part of this Helm release).
+  # External Keycloak: set to false and configure global.identity.keycloak.url to point to your external Keycloak.
+  # External OIDC: set to false (no Keycloak is used).
+  enabled: true
+  
+  
+  illumio:
+    app: "A"
+    env: "E"
+    loc: "DEV"
+    role: "R"
+    app_tiers: "A"          
+    middleware: "M"
+  sfm:
+    app: "a"
+    env: "e"
+    loc: "l_"
+    role: "r_"
+    
+  laas_dmzr_apcode: "AP"
+  laas_dmzr_dataset: "x0camundaplatform"
+  laas_dmzr_env: "dev"
+  
+  # --- Common Labels and Annotations ---
+  commonLabels:
+    opscontact: "p"
+    appcode: "AP"
+    tier: "backend"
+    component: "camunda"
+    function: "workflow"
+    laas_dataset: "x0camundaplatform"
+    laas_env: "dev"
+  
+    
+  extraLabels:
+    appcode: "AP"
+    opscontact: "p"
+    
+  podLabels:
+    opscontact: "p"
+    tier: "backend"
+    component: "camunda-keycloak"
+    function: "workflow"
+    appCode: "AP"
+    laas_dataset: "x0camundaplatform"
+    laas_env: "dev"
+    com.illumio.app: '{{ .Values.illumio.app }}'
+    com.illumio.env: '{{ .Values.illumio.env }}'
+    com.illumio.loc: '{{ .Values.illumio.loc }}'
+    com.illumio.role: '{{ .Values.illumio.role }}'
+    com.illumio.app-tiers: '{{ .Values.illumio.app_tiers }}'
+    com.illumio.middleware: '{{ .Values.illumio.middleware }}'
+    #https://shary-de.pi.echonet/spaces/CW/pages/528815561/18.6.2+-+Routes
+    sfm-app: '{{ .Values.sfm.app }}'
+    sfm-env: '{{ .Values.sfm.env }}'
+    sfm-loc: '{{ .Values.sfm.loc }}'
+    sfm-role: '{{ .Values.sfm.role }}'
+    laas_dmzr_apcode: '{{ .Values.laas_dmzr_apcode }}'
+    laas_dmzr_dataset: '{{ .Values.laas_dmzr_dataset }}'
+    laas_dmzr_env: '{{ .Values.laas_dmzr_env }}'
+  
+  routeLabels:
+    sfm-app: "{{ .Values.sfm.app }}"
+    sfm-env: "{{ .Values.sfm.env }}"
+    sfm-loc: "{{ .Values.sfm.loc }}"
+    sfm-role: "{{ .Values.sfm.role }}"
+
+  commonAnnotations:
+    com.illumio.app: '{{ .Values.illumio.app }}'
+    com.illumio.env: '{{ .Values.illumio.env }}'
+    com.illumio.loc: '{{ .Values.illumio.loc }}'
+    com.illumio.role: '{{ .Values.illumio.role }}'
+    com.illumio.app-tiers: '{{ .Values.illumio.app_tiers }}'
+    com.illumio.middleware: '{{ .Values.illumio.middleware }}'
+    #https://shary-de.pi.echonet/spaces/CW/pages/528815561/18.6.2+-+Routes
+    sfm-app: '{{ .Values.sfm.app }}'
+    sfm-env: '{{ .Values.sfm.env }}'
+    sfm-loc: '{{ .Values.sfm.loc }}'
+    sfm-role: '{{ .Values.sfm.role }}'
+    laas_dmzr_apcode: '{{ .Values.laas_dmzr_apcode }}'
+    laas_dmzr_dataset: '{{ .Values.laas_dmzr_dataset }}'
+    laas_dmzr_env: '{{ .Values.laas_dmzr_env }}'
+    
+    
+  
+  # --- External Database Configuration ---
+  externalDatabase:
+     enabled: true
+     host: ""
+     password: ""
+     port: 31085
+     database: ""
+     schema: camunda-keycloak
+     #existingSecret: "keycloak-db-secret"
+     #existingSecretPasswordKey: "db_password"
+     sslMode: "require"
+   
+  
+  ## @param identityKeycloak.nameOverride (DEPRECATED) the name used for Keycloak.
+  nameOverride: "keycloak"
+
+  ## @extra identityKeycloak.image (DEPRECATED) configuration.
+  # https://hub.docker.com/r/bitnami/keycloak/tags
+  image:
+    ## @param identityKeycloak.image.repository (DEPRECATED) image repo
+    repository: keycloak-keycloak
+    ## @param identityKeycloak.image.tag (DEPRECATED) image tag
+    tag: 26.5.6-3
+    ## @param identityKeycloak.image.digest (DEPRECATED) can be used to set image digest (overrides tag if set, e.g. "sha256:abcd...")
+    digest: ""
+    pullPolicy: "Always"
+    pullSecrets: ["secret"]
+
+  ## @extra identityKeycloak.resources (DEPRECATED) configuration of resource requests and limits for the container, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits
+  ## @param identityKeycloak.resources.requests.cpu (DEPRECATED)
+  ## @param identityKeycloak.resources.requests.memory (DEPRECATED)
+  ## @param identityKeycloak.resources.limits.cpu (DEPRECATED)
+  ## @param identityKeycloak.resources.limits.memory (DEPRECATED)
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  ## @extra identityKeycloak.postgresql (DEPRECATED) configuration.
+  postgresql:
+    enabled: false
+    
+  # Keycloak.proxy defines the proxy mode depends on the TLS termination in your environment.
+  # Docs: https://www.keycloak.org/server/reverseproxy
+  ## @param identityKeycloak.proxy (DEPRECATED) keycloak proxy
+  proxy: edge
+
+  ## @extra identityKeycloak.tls (DEPRECATED) can be used to enable TLS encryption. Required for HTTPs traffic.
+  tls:
+    ## @param identityKeycloak.tls.enabled (DEPRECATED) enabling tls
+    enabled: true
+    autoGenerated: false
+    existingSecret: "camunda-keycloak-service-secret"
+    usePem: true
+    #truststoreFilename: "keycloak.truststore.jks"
+    #keystoreFilename: "keycloak.keystore.jks"
+    #passwordsSecret: "keycloak-tls-passwords"
+  
+  # --- Init Containers for Keystore/Truststore Setup ---
+  initContainers:
+    - name: pem-to-keystore
+      image: "rel/java-init-container:8.9.1-7461552"
+      imagePullPolicy: Always
+      securityContext:
+        runAsUser: 1002
+      env:
+        - name: keyfile
+          value: /var/run/secrets/openshift.io/services_serving_certs/tls.key
+        - name: crtfile
+          value: /var/run/secrets/openshift.io/services_serving_certs/tls.crt
+        - name: keystore_pkcs12
+          value: /var/run/secrets/java.io/keystores/keystore.pkcs12
+        - name: keystore_jks
+          value: /var/run/secrets/java.io/keystores/keystore.jks
+        - name: password
+          value: changeit
+      command: [ '/bin/bash' ]
+      args: [ '-c', "openssl pkcs12 -export -inkey $keyfile -in $crtfile -out $keystore_pkcs12 -password pass:$password && keytool -importkeystore -noprompt -srckeystore $keystore_pkcs12 -srcstoretype pkcs12 -destkeystore $keystore_jks -storepass $password -srcstorepass $password" ]
+      volumeMounts:
+        - name: keystore-volume
+          mountPath: /var/run/secrets/java.io/keystores
+        - name: '{{ .Values.global.serviceTls.secret.name }}'
+          mountPath: /var/run/secrets/openshift.io/services_serving_certs
+    - name: pem-to-truststore
+      image: "rel/java-init-container:8.9.1-7461552"
+      imagePullPolicy: Always
+      securityContext:
+        runAsUser: 1002
+      env:
+        - name: ca_bundle
+          value: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+        - name: truststore_jks
+          value: /var/run/secrets/java.io/keystores/truststore.jks
+        - name: password
+          value: changeit
+        - name: JAVA_HOME
+          value: /usr/lib/jvm/java-21
+      command: [ '/bin/bash' ]
+      args: [ '-c', "cd /tmpkey && keytool -importkeystore -noprompt -srckeystore $JAVA_HOME/lib/security/cacerts -srcstoretype JKS -destkeystore $truststore_jks -storepass $password -srcstorepass $password && csplit -z -f crt- $ca_bundle '/-----BEGIN CERTIFICATE-----/' '{*}' && for file in crt-*; do keytool -import -noprompt -keystore $truststore_jks -file $file -storepass $password -alias service-$file; done" ]
+      volumeMounts:
+        - name: keystore-volume
+          mountPath: /var/run/secrets/java.io/keystores
+        - name: tmpkey
+          mountPath: /tmpkey
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # SERVICE ACCOUNT CONFIGURATION – we MUST have a token for Vault auth
+  # ─────────────────────────────────────────────────────────────────────────────
+  usePasswordFiles: false
+  automountServiceAccountToken: true
+  serviceAccount:
+    create: true
+    name: "camunda-keycloak-service-account"
+    extraLabels:
+      appcode: "AP"
+      opscontact: "p"
+    # Keep the Vault role annotation **only** on the ServiceAccount (not on the pod)
+    annotations:
+      vault.hashicorp.com/role: "ns_camunda-keycloak-service-account"
+
+
+  
+
+  # --- StatefulSet Configurations ---
+  statefulset:
+    labels: 
+        opscontact: "p"
+        tier: "backend"
+        component: "camunda"
+        function: "workflow"
+        appCode: "AP"
+        laas_dataset: "x0camundaplatform"
+        laas_env: "dev"
+    annotations: 
+        com.illumio.app: '{{ .Values.illumio.app }}'
+        com.illumio.env: '{{ .Values.illumio.env }}'
+        com.illumio.loc: '{{ .Values.illumio.loc }}'
+        com.illumio.role: '{{ .Values.illumio.role }}'
+        com.illumio.app-tiers: '{{ .Values.illumio.app_tiers }}'
+        com.illumio.middleware: '{{ .Values.illumio.middleware }}'
+        #https://shary-de.pi.echonet/spaces/CW/pages/528815561/18.6.2+-+Routes
+        sfm-app: '{{ .Values.sfm.app }}'
+        sfm-env: '{{ .Values.sfm.env }}'
+        sfm-loc: '{{ .Values.sfm.loc }}'
+        sfm-role: '{{ .Values.sfm.role }}'
+        laas_dmzr_apcode: '{{ .Values.laas_dmzr_apcode }}'
+        laas_dmzr_dataset: '{{ .Values.laas_dmzr_dataset }}'
+        laas_dmzr_env: '{{ .Values.laas_dmzr_env }}'
+        
+  containerPorts:
+    http: 3030
+    https: 3443
+    metrics: 3000
+
+  # --- Service Configurations ---
+  service:
+    metadata:
+        labels:
+          appcode: "AP"
+          opscontact: "p"
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: '{{ .Values.global.serviceTls.secret.name }}'
+      com.illumio.app: '{{ .Values.illumio.app }}'
+      com.illumio.env: '{{ .Values.illumio.env }}'
+      com.illumio.loc: '{{ .Values.illumio.loc }}'
+      com.illumio.role: '{{ .Values.illumio.role }}'
+      com.illumio.app-tiers: '{{ .Values.illumio.app_tiers }}'
+      com.illumio.middleware: '{{ .Values.illumio.middleware }}'
+      #https://shary-de.pi.echonet/spaces/CW/pages/528815561/18.6.2+-+Routes
+      sfm-app: '{{ .Values.sfm.app }}'
+      sfm-env: '{{ .Values.sfm.env }}'
+      sfm-loc: '{{ .Values.sfm.loc }}'
+      sfm-role: '{{ .Values.sfm.role }}'
+      laas_dmzr_apcode: '{{ .Values.laas_dmzr_apcode }}'
+      laas_dmzr_dataset: '{{ .Values.laas_dmzr_dataset }}'
+      laas_dmzr_env: '{{ .Values.laas_dmzr_env }}'
+    ports:
+      http: 3030
+      https: 3443
+    extraPorts:
+      - name: public
+        port: 3131
+        targetPort: 3443
+        protocol: TCP
+      - name: mgmt
+        port: 3000
+        targetPort: 3000
+        protocol: TCP
+    type: "ClusterIP"
+    headless:
+        ## @param service.headless.annotations Annotations for the headless service.
+        ##
+        annotations: 
+          com.illumio.app: '{{ .Values.illumio.app }}'
+          com.illumio.env: '{{ .Values.illumio.env }}'
+          com.illumio.loc: '{{ .Values.illumio.loc }}'
+          com.illumio.role: '{{ .Values.illumio.role }}'
+          com.illumio.app-tiers: '{{ .Values.illumio.app_tiers }}'
+          com.illumio.middleware: '{{ .Values.illumio.middleware }}'
+          #https://shary-de.pi.echonet/spaces/CW/pages/528815561/18.6.2+-+Routes
+          sfm-app: '{{ .Values.sfm.app }}'
+          sfm-env: '{{ .Values.sfm.env }}'
+          sfm-loc: '{{ .Values.sfm.loc }}'
+          sfm-role: '{{ .Values.sfm.role }}'
+          laas_dmzr_apcode: '{{ .Values.laas_dmzr_apcode }}'
+          laas_dmzr_dataset: '{{ .Values.laas_dmzr_dataset }}'
+          laas_dmzr_env: '{{ .Values.laas_dmzr_env }}'
+
+  # --- Environment Variables ---
+  extraEnvVars:
+    - name: VAULT_ADDR
+      value: "https://hvault.staging.echonet.net.intra"
+    - name: VAULT_SKIP_VERIFY
+      value: "true"
+      # ----- ADMIN password (file) -----
+    - name: KC_BOOTSTRAP_ADMIN_PASSWORD_FILE
+      value: /opt/bitnami/keycloak/secrets/admin-password
+    # ----- DB credentials (file) -----
+    - name: KEYCLOAK_DATABASE_USER_FILE
+      value: /opt/bitnami/keycloak/secrets/db-creds
+    # ----- TLS passwords (file) -----
+    - name: KEYSTORE_PASSWORD_FILE
+      value: /opt/bitnami/keycloak/secrets/tls-passwords
+    - name: TRUSTSTORE_PASSWORD_FILE
+      value: /opt/bitnami/keycloak/secrets/tls-passwords
+    - name: JAVA_OPTS
+      value: "-Dkeycloak.profile.feature.upload_scripts=enabled -Djavax.net.ssl.trustStore=/truststore/truststore.jks -Djavax.net.ssl.trustStorePassword=$(TRUSTSTORE_PASSWORD)"
+
+  # --- Volumes for Secrets and Certificates ---
+  extraVolumes:
+    - name: vault-agent
+      emptyDir: {}
+    - name: keystore-volume
+      emptyDir: {}
+    - name: truststore-volume
+      emptyDir: {}
+    - name: trusted-ca
+      configMap:
+        name: camunda-keycloak
+        items:
+          - key: service-ca.crt
+            path: tls-ca-bundle.pem
+        defaultMode: 420
+    - name: '{{ .Values.global.serviceTls.secret.name }}'
+      secret:
+        secretName: '{{ .Values.global.serviceTls.secret.name }}'
+    - name: tmpkey
+      emptyDir: {}
+    # This volume will receive the three secret files generated by ESO
+    #- name: keycloak-secrets
+    #  emptyDir: {}
+
+
+  extraVolumeMounts:
+    - name: vault-agent
+      mountPath: /opt/bitnami/keycloak/secrets   # <-- same path that the container looks at
+      readOnly: true
+    - name: truststore-volume
+      mountPath: "/opt/bitnami/keycloak/conf/truststore"
+    - name: '{{ .Values.global.serviceTls.secret.name }}'
+      mountPath: "/var/run/secrets/openshift.io/services_serving_certs"
+      readOnly: true
+    ## DB creds – mount as a **single** file called "db-creds"
+    #- name: vault-agent
+    #  mountPath: /opt/bitnami/keycloak/conf/db-creds
+    #  subPath: db-creds
+    #  readOnly: true
+    ## Admin password – mount as the expected file “admin-password”
+    #- name: vault-agent
+    #  mountPath: /opt/bitnami/keycloak/conf/admin-password
+    #  subPath: admin-password
+    #  readOnly: true
+    ## TLS passwords – mount as the file “tls-passwords”
+    #- name: vault-agent
+    #  mountPath: /opt/bitnami/keycloak/conf/tls-passwords
+    #  subPath: tls-passwords
+    #  readOnly: true
+    #- name: vault-agent
+    #  mountPath: /opt/bitnami/keycloak/conf/db-creds
+    #  subPath: db-creds
+    #  readOnly: true
+    #- name: vault-agent
+    #  mountPath: /opt/bitnami/keycloak/conf/admin-password
+    #  subPath: admin-password
+    #  readOnly: true
+    #- name: vault-agent
+    #  mountPath: /opt/bitnami/keycloak/conf/tls-passwords
+    #  subPath: tls-passwords
+    #  readOnly: true
+    #- name: keycloak-secrets
+    #  mountPath: /opt/bitnami/keycloak/conf/admin-password
+    #  subPath: admin-password
+    #  readOnly: true
+    #- name: keycloak-secrets
+    #  mountPath: /opt/bitnami/keycloak/conf/db-creds
+    #  subPath: db-creds
+    #  readOnly: true
+    #- name: keycloak-secrets
+    #  mountPath: /opt/bitnami/keycloak/conf/tls-passwords
+    #  subPath: tls-passwords
+    #  readOnly: true
+
+  # ───────────────────────────────────────────────────────────────────────────────
+  # OPENSHIFT ROUTE CONFIGURATION
+  # ───────────────────────────────────────────────────────────────────────────────
+  publicRoute:
+    - name: camunda-keycloak-public
+      path: "/auth"
+
+  # Management Route for Metrics
+  managementRoute:
+    name: camunda-keycloak-mgmt
+    path: "/metrics"  # Path for metrics exposure
+    managementPath: "/metrics"  # Used in the route template
+  
+  # Route-specific values
+  appName: "camunda-keycloak"
+  version: "26.5.6"
+  environment: "x0"
+  hostName: "camund-0001-x0-de.pi.dev.echonet"
+  serviceAccountName: "camunda-keycloak-service-account"
+
+  ## @param identityKeycloak.containerSecurityContext.privileged (DEPRECATED)
+  ##
+  ## Keycloak pods' SecurityContext
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param podSecurityContext.enabled Enabled Keycloak pods' Security Context
+  ## @param podSecurityContext.fsGroupChangePolicy Set filesystem group change policy
+  ## @param podSecurityContext.sysctls Set kernel settings using the sysctl interface
+  ## @param podSecurityContext.supplementalGroups Set filesystem extra groups
+  ## @param podSecurityContext.fsGroup Set Keycloak pod's Security Context fsGroup
+  ##
+  podSecurityContext:
+    enabled: true
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+  ## Keycloak containers' Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param containerSecurityContext.enabled Enabled containers' Security Context
+  ## @param containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
+  ## @param containerSecurityContext.runAsUser Set containers' Security Context runAsUser
+  ## @param containerSecurityContext.runAsGroup Set containers' Security Context runAsGroup
+  ## @param containerSecurityContext.runAsNonRoot Set container's Security Context runAsNonRoot
+  ## @param containerSecurityContext.privileged Set container's Security Context privileged
+  ## @param containerSecurityContext.readOnlyRootFilesystem Set container's Security Context readOnlyRootFilesystem
+  ## @param containerSecurityContext.allowPrivilegeEscalation Set container's Security Context allowPrivilegeEscalation
+  ## @param containerSecurityContext.capabilities.drop List of capabilities to be dropped
+  ## @param containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
+  ##
+  containerSecurityContext:
+    enabled: true
+    seLinuxOptions:
+      level: "s0:c41,c15"    # <‑‑ this satisfies the SCC
+    runAsUser: 1001          # non‑root – allowed
+    runAsGroup: 1001         # allowed
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+  
+    
+  networkPolicy:
+    enabled: false
+  ## @param identityKeycloak.httpRelativePath (DEPRECATED) defines the context for Keycloak. This config is valid for Keycloak v19.x.x only
+  # where in Keycloak v16.x.x it's hard-coded as '/auth', but in v19.x.x it's configurable.
+  # NOTE: This should be the same as ".Values.global.identity.keycloak.contextPath" plus a trailing slash,
+  # but it cannot be referenced directly because of a bug in Helm (tested with Helm v3.9.3).
+  # NOTE: In Keycloak v23, accessing this path without the trailing slash will return "Internal Server Error".
+  httpRelativePath: /auth/
+  
+  # under "global.ingress" is enabled. However, it's possible to setup Keycloak on a separate Ingress if needed.
+  # For more details: https://github.com/bitnami/charts/tree/main/bitnami/keycloak#configure-ingress
+  ingress:
+    ## @param identityKeycloak.ingress.enabled (DEPRECATED) can be used enable ingress record generation for Keycloak.
+    enabled: false
+    ## @param identityKeycloak.ingress.tls (DEPRECATED) can be used to enable TLS configuration for the host defined at ingress.hostname parameter.
+    tls: false
+    ## @param identityKeycloak.ingress.extraTls (DEPRECATED) configuration for additional hostnames to be covered with this ingress record.
+    extraTls: []
+    ## @param identityKeycloak.ingress.labels (DEPRECATED) [object] can be used to define labels which will be applied to the Keycloak ingress resource
+    labels: {}
+    ## @extra identityKeycloak.ingress.annotations (DEPRECATED) configures annotations to be applied to the ingress record.
+    annotations:
+      ## @skip identityKeycloak.ingress.annotations.nginx.ingress.kubernetes.io/proxy-buffer-size (DEPRECATED)
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+      ## @skip identityKeycloak.ingress.annotations.nginx.ingress.kubernetes.io/proxy-buffering (DEPRECATED)
+      nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    ## @param identityKeycloak.ingress.pathType (DEPRECATED) defines Ingress path type.
+    pathType: Prefix
+
+  ## Keycloak authentication parameters
+  ## ref: https://github.com/bitnami/bitnami-docker-keycloak#admin-credentials
+  ##
+  ## @extra identityKeycloak.auth (DEPRECATED) uses the secrets generated by keycloak, to access keycloak.
+  auth:
+    ## @param identityKeycloak.auth.adminUser (DEPRECATED) defines the keycloak administrator user
+    adminUser: admin
+    ## @param identityKeycloak.auth.existingSecret (DEPRECATED) can be used to reuse an existing secret containing authentication information.
+    # See https://docs.bitnami.com/kubernetes/apps/keycloak/configuration/manage-passwords/ for more details.
+    existingSecret: "keycloak-admin-secret"
+    ## @param identityKeycloak.auth.passwordSecretKey (DEPRECATED) defines the key within the existing secret object.
+    passwordSecretKey: "admin-password"
+  #keycloakConfigCli:
+    #image:
+      ## @param identityKeycloak.keycloakConfigCli.image.repository (DEPRECATED)
+      #repository: bitnamilegacy/keycloak-config-cli
+
+  dnsConfig:
+    searches:
+      - net.intra
+      - fr.net.intra
+      - fra.net.intra

@@ -1,0 +1,14 @@
+include:
+  - project: '/workflows' 
+    file: 'templates/argocd-packaged-v2/argocd-full.gitlab-ci.yml'
+    ref: 2.0.0-cd
+
+variables:
+    IMAGE_LIST: "[
+    'keycloak-keycloak:26.5.6--3,reg-realm/keycloak-keycloak:26.5.6-3,local.artifactory',
+    'camunda-identity:8.9.1-,reg-realm/camunda-identity:8.9.1-,local.artifactory',
+    'java-init-container:8.9.1--7461552,reg-realm/java-init-container:8.9.1-7461552,local.artifactory',
+    'vault-sidecar:1.0.0-7589823,reg-realm/vault-sidecar:1.0.0-7589823,local.artifactory'
+
+    ]"
+

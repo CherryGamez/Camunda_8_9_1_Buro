@@ -1,0 +1,29 @@
+camunda-vault-agent:
+  # -----------------------------------------------------------------
+  # Image & generic settings – keep exactly the same as the upstream chart
+  # -----------------------------------------------------------------
+  image: vault-sidecar:1.0.0-7589823
+  imagePullPolicy: Always
+  intervalSeconds: 300               # poll Vault every 5 min (adjust if you want)
+
+  vault:
+    addr: "https://hvault"
+    authPath: kubernetes
+    namespace: "ns"        # Enterprise namespace – leave empty for dev
+    skipVerify: false                # we will mount the OpenShift service‑CA
+
+  trustedCa:
+    enabled: true
+    configMapName: trusted-ca
+    openshiftInject: true            # OpenShift will fill the bundle automatically
+    caBundle: ""                     # not needed on OpenShift
+
+  bootstrap:
+    serviceAccountName: camunda-vault-bootstrap
+    vaultRole: camunda-bootstrap     # dummy role – only needs permission to *create* the K8s secret
+
+  rbac:
+    create: true
+
+  networkPolicy:
+    enabled: true

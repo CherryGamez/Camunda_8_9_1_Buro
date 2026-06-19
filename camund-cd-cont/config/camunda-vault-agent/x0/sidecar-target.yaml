@@ -1,0 +1,29 @@
+camunda-vault-agent:
+  # ---------------------------------------------------------------
+  # ONLY ONE TARGET – Keycloak
+  # ---------------------------------------------------------------
+  targets:
+    - name: keycloak                     # logical name, used for ConfigMap naming
+      secretName: camunda-keycloak-secret
+      mappings:                          # <-- each entry MUST start with a dash
+        # ── static admin password (KV‑v2) ────────────────────────
+        - vaultPath: "AP/secret/dev/x0/camunda_keycloak"
+          field:     "admin-password"
+          secretKey: "admin-password"
+
+        # ── dynamic DB credentials (Database/creds endpoint) ─────
+        - vaultPath: "AP/database/creds/keycloak"
+          field:     "username"
+          secretKey: "db-username"
+
+        - vaultPath: "AP/database/creds/keycloak"
+          field:     "password"
+          secretKey: "db-password"
+
+      sidecar:
+        enabled: true
+        serviceAccountName: camunda-keycloak-service-account
+        vaultRole: ns_camunda-keycloak-service-account
+        workload:
+          kind: Deployment
+          name: camunda-keycloak                                 

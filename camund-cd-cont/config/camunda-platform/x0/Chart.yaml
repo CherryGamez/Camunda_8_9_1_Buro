@@ -1,0 +1,8 @@
+name: camunda-platform-x0
+version: 1.0.0
+apiVersion: v2
+dependencies:
+  - name: camunda-platform
+    repository: https://repo./artifactory/p-helm
+    version: 0.0.0-featurecamunda-platform
+

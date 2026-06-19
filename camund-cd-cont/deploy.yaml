@@ -1,0 +1,18 @@
+argocd_config:
+  auto_sync: true
+  auto_sync_selfHeal: true
+  auto_sync_allowEmpty: true
+  auto_sync_prune: true
+argocd_applications:
+  - name:
+      - camunda-keycloak
+    stage: x0
+    clusters:
+      - cluster: https://ibm.com:30694
+        namespace: ns
+  - name:
+      - camunda-vault-agent
+    stage: x0
+    clusters:
+      - cluster: https://ibm.com:30694
+        namespace: ns  

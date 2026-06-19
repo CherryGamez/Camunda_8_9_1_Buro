@@ -1,0 +1,314 @@
+{{- if .Values.haproxy.enabled }}
+{{- $h := .Values.haproxy }}
+{{- $r := .Release.Name }}
+{{/*
+HAProxy: the single external entry point for the Camunda platform.
+Routes by URL path prefix to the internal module services; gRPC (Zeebe) is
+proxied in TCP mode. Binds on unprivileged ports (8080/26500) so it can run
+non-root; the Service maps the external ports onto them.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $r }}-haproxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: camunda-platform
+    app.kubernetes.io/component: haproxy
+data:
+  haproxy.cfg: |
+    global
+      log stdout format raw local0 info
+      maxconn 8192
+
+    defaults
+      log     global
+      mode    http
+      timeout connect 10s
+      timeout client  300s
+      timeout server  300s
+      timeout tunnel  3600s        # long-lived websockets (web-modeler)
+
+    # Runtime DNS for backend Services (reads the pod's /etc/resolv.conf), so
+    # HAProxy tracks Service ClusterIP changes and starts even if a backend is
+    # not yet resolvable during rollout.
+    resolvers kube-dns
+      parse-resolv-conf
+      resolve_retries 3
+      timeout resolve 1s
+      timeout retry   1s
+      hold valid 10s
+
+    # ---- health & stats (internal) ----
+    frontend stats
+      bind *:8404
+      mode http
+      http-request return status 200 content-type text/plain string "ok" if { path /healthz }
+      stats enable
+      stats uri /stats
+      stats refresh 10s
+
+    # ---- main HTTP entry point ----
+    frontend http_in
+      bind *:8080
+{{- if $h.tls.enabled }}
+      bind *:8443 ssl crt /etc/haproxy/tls/tls.pem alpn h2,http/1.1
+{{- end }}
+      mode http
+      option  httplog
+      option  forwardfor
+      option  http-server-close
+{{- if and $h.tls.enabled $h.tls.redirectHttp }}
+      # Redirect plain HTTP to HTTPS
+      http-request redirect scheme https code 301 unless { ssl_fc }
+{{- end }}
+
+      # Identify websocket upgrades (Web Modeler collaboration)
+      acl is_ws            hdr(Upgrade) -i websocket
+
+      acl p_auth           path_beg /auth
+      acl p_identity       path_beg /identity
+      acl p_optimize       path_beg /optimize
+      acl p_modeler_ws     path_beg /modeler-ws
+      acl p_modeler        path_beg /modeler
+      acl p_console        path_beg /console
+      acl p_connectors     path_beg /connectors
+
+      use_backend be_keycloak     if p_auth
+      use_backend be_identity     if p_identity
+      use_backend be_optimize     if p_optimize
+      use_backend be_modeler_ws   if p_modeler_ws
+      use_backend be_modeler_ws   if p_modeler is_ws
+      use_backend be_modeler      if p_modeler
+      use_backend be_console      if p_console
+      use_backend be_connectors   if p_connectors
+      # Everything else (Operate, Tasklist, REST v2 API, login) -> orchestration
+      default_backend be_orchestration
+
+    backend be_keycloak
+      server s1 {{ $r }}-keycloak:80 check resolvers kube-dns init-addr none
+    backend be_identity
+      server s1 {{ $r }}-identity:80 check resolvers kube-dns init-addr none
+    backend be_optimize
+      server s1 {{ $r }}-optimize:80 check resolvers kube-dns init-addr none
+    backend be_modeler
+      server s1 {{ $r }}-web-modeler-restapi:80 check resolvers kube-dns init-addr none
+    backend be_modeler_ws
+      server s1 {{ $r }}-web-modeler-websockets:80 check resolvers kube-dns init-addr none
+    backend be_console
+      server s1 {{ $r }}-console:80 check resolvers kube-dns init-addr none
+    backend be_connectors
+      server s1 {{ $r }}-connectors:8080 check resolvers kube-dns init-addr none
+    backend be_orchestration
+      server s1 {{ $r }}-zeebe-gateway:8080 check resolvers kube-dns init-addr none
+
+    # ---- Zeebe gRPC entry point (HTTP/2 over TCP) ----
+    listen zeebe_grpc
+      bind *:26500
+      mode tcp
+      option tcplog
+      balance roundrobin
+      server s1 {{ $r }}-zeebe-gateway:26500 check resolvers kube-dns init-addr none
+{{- if $h.monitoring.enabled }}
+
+    # ---- Monitoring / management entry point (Spring Boot actuator) ----
+    # Each app's management port is reached under a per-app path prefix; the
+    # prefix is stripped so the backend sees the native /actuator/... path.
+    #   GET :{{ $h.monitoring.port }}/orchestration/actuator/health
+    #   GET :{{ $h.monitoring.port }}/orchestration/actuator/prometheus
+    #   GET :{{ $h.monitoring.port }}/optimize/actuator/prometheus      (port 8092)
+    #   GET :{{ $h.monitoring.port }}/identity/actuator/prometheus      (port 82)
+    #   GET :{{ $h.monitoring.port }}/console/actuator/health           (port 9100)
+    #   GET :{{ $h.monitoring.port }}/web-modeler/actuator/health       (port 8091)
+    #   GET :{{ $h.monitoring.port }}/connectors/actuator/prometheus    (port 8080)
+    # SECURITY: actuator can expose runtime info — restrict reachability via
+    # monitoring.allowedCidrs and/or a NetworkPolicy so only Prometheus can scrape.
+    frontend monitoring_in
+      bind *:9090
+      mode http
+      option httplog
+{{- if $h.monitoring.allowedCidrs }}
+      acl mon_allowed src{{ range $h.monitoring.allowedCidrs }} {{ . }}{{ end }}
+      http-request deny unless mon_allowed
+{{- end }}
+      http-request return status 200 content-type text/plain string "ok" if { path /healthz }
+
+      acl m_orch        path_beg /orchestration
+      acl m_optimize    path_beg /optimize
+      acl m_identity    path_beg /identity
+      acl m_console     path_beg /console
+      acl m_modeler     path_beg /web-modeler
+      acl m_connectors  path_beg /connectors
+
+      http-request set-path %[path,regsub(^/orchestration,)] if m_orch
+      http-request set-path %[path,regsub(^/optimize,)]      if m_optimize
+      http-request set-path %[path,regsub(^/identity,)]      if m_identity
+      http-request set-path %[path,regsub(^/console,)]       if m_console
+      http-request set-path %[path,regsub(^/web-modeler,)]   if m_modeler
+      http-request set-path %[path,regsub(^/connectors,)]    if m_connectors
+
+      use_backend bem_orchestration if m_orch
+      use_backend bem_optimize      if m_optimize
+      use_backend bem_identity      if m_identity
+      use_backend bem_console       if m_console
+      use_backend bem_modeler       if m_modeler
+      use_backend bem_connectors    if m_connectors
+      default_backend bem_noop
+
+    backend bem_orchestration
+      server s1 {{ $r }}-zeebe-gateway:9600 check resolvers kube-dns init-addr none
+    backend bem_optimize
+      server s1 {{ $r }}-optimize:8092 check resolvers kube-dns init-addr none
+    backend bem_identity
+      server s1 {{ $r }}-identity:82 check resolvers kube-dns init-addr none
+    backend bem_console
+      server s1 {{ $r }}-console:9100 check resolvers kube-dns init-addr none
+    backend bem_modeler
+      server s1 {{ $r }}-web-modeler-restapi:8091 check resolvers kube-dns init-addr none
+    backend bem_connectors
+      server s1 {{ $r }}-connectors:8080 check resolvers kube-dns init-addr none
+    backend bem_noop
+      http-request return status 404 content-type text/plain string "unknown monitoring path (use /<app>/actuator/...)\n"
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $r }}-haproxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: camunda-platform
+    app.kubernetes.io/component: haproxy
+spec:
+  replicas: {{ $h.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: haproxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: camunda-platform
+        app.kubernetes.io/component: haproxy
+      annotations:
+        checksum/config: {{ .Files.Get "templates/haproxy.yaml" | sha256sum | trunc 16 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+{{- if $h.tls.enabled }}
+      initContainers:
+        # Assemble the HAProxy PEM (cert+key). Self-signs if no Secret is given.
+        - name: tls-init
+          image: {{ $.Values.vaultAgent.image | quote }}
+          imagePullPolicy: {{ $.Values.vaultAgent.imagePullPolicy }}
+          command: ["sh", "-c", "cat /tls-src/tls.crt /tls-src/tls.key > /etc/haproxy/tls/tls.pem && echo assembled PEM from {{ $h.tls.secretName }}"]
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/haproxy/tls
+            - name: tls-src
+              mountPath: /tls-src
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities:
+              drop: ["ALL"]
+{{- end }}
+      containers:
+        - name: haproxy
+          image: {{ $h.image | quote }}
+          args: ["-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+          ports:
+            - { name: http, containerPort: 8080 }
+{{- if $h.tls.enabled }}
+            - { name: https, containerPort: 8443 }
+{{- end }}
+            - { name: grpc, containerPort: 26500 }
+{{- if $h.monitoring.enabled }}
+            - { name: monitoring, containerPort: 9090 }
+{{- end }}
+            - { name: stats, containerPort: 8404 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8404 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8404 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources: {{- toYaml $h.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /usr/local/etc/haproxy
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+{{- if $h.tls.enabled }}
+            - name: tls
+              mountPath: /etc/haproxy/tls
+              readOnly: true
+{{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $r }}-haproxy
+        - name: tmp
+          emptyDir: {}
+{{- if $h.tls.enabled }}
+        - name: tls
+          emptyDir: {}
+        - name: tls-src
+          secret:
+            secretName: {{ $h.tls.secretName }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $r }}-haproxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: camunda-platform
+    app.kubernetes.io/component: haproxy
+  {{- $svcAnn := $h.service.annotations | default dict }}
+  {{- if and $h.tls.enabled $h.tls.openshiftServiceCA }}
+  {{- $svcAnn = merge (dict "service.beta.openshift.io/serving-cert-secret-name" $h.tls.secretName) $svcAnn }}
+  {{- end }}
+  {{- with $svcAnn }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $h.service.type }}
+  selector:
+    app.kubernetes.io/component: haproxy
+  ports:
+    - name: http
+      port: {{ $h.service.httpPort }}
+      targetPort: 8080
+      protocol: TCP
+{{- if $h.tls.enabled }}
+    - name: https
+      port: {{ $h.service.httpsPort }}
+      targetPort: 8443
+      protocol: TCP
+{{- end }}
+    - name: grpc
+      port: {{ $h.service.grpcPort }}
+      targetPort: 26500
+      protocol: TCP
+{{- if $h.monitoring.enabled }}
+    - name: monitoring
+      port: {{ $h.monitoring.port }}
+      targetPort: 9090
+      protocol: TCP
+{{- end }}
+{{- end }}

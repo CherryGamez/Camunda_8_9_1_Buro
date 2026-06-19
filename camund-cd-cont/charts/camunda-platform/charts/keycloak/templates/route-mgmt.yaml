@@ -1,0 +1,27 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: '{{ .Values.appName  }}-mgmt'
+  labels:
+    {{- if .Values.global.commonLabels }}
+    {{- .Values.global.commonLabels | toYaml | nindent 4 }}
+    {{- end }}
+    tier: '{{ .Values.commonLabels.tier }}'
+    appcode: '{{ .Values.commonLabels.appCode }}'
+    app: '{{ .Values.appName  }}'
+    env: '{{ .Values.environment  }}'
+    component: '{{ .Values.commonLabels.component }}'
+    function: '{{ .Values.commonLabels.function }}'
+    opscontact: '{{ .Values.commonLabels.opsContact }}'
+spec:
+  host: '{{ .Values.hostName  }}'
+  path: '{{ .Values.managementPath  }}'
+  port:
+    targetPort: '{{ .Values.appName  }}-mgmt'
+  to:
+    kind: Service
+    name: '{{ .Values.appName  }}'
+    weight: 100
+  wildcardPolicy: "None"
+  tls:
+    termination: reencrypt

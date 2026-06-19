@@ -1,0 +1,8 @@
+name: camunda-vault-agent-x0
+version: 1.0.0
+apiVersion: v2
+dependencies:
+  - name: camunda-vault-agent
+    repository: https://repo/artifactory/p-helm
+    version: 0.0.0-featurecamunda-keycloak-vault-sidecar
+

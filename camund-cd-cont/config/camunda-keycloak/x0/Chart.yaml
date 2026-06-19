@@ -1,0 +1,8 @@
+name: camunda-keycloak-x0
+version: 1.0.0
+apiVersion: v2
+dependencies:
+  - name: camunda-keycloak
+    repository: https://repo.artifactory-dogen.group.echonet/artifactory/p-6355-helm
+    version: 0.0.0-featurecamunda-keycloak-vault-sidecar
+
